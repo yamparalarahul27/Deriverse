@@ -5,7 +5,9 @@
 - Supporting app (Concept DJ Playground): [https://conceptdj.vercel.app/playground](https://conceptdj.vercel.app/playground)
 - Supporting app repo: [https://github.com/yamparalarahul27/ConceptDJ](https://github.com/yamparalarahul27/ConceptDJ)
 
-## Demo Video
+
+## Archtecture Mermaid <img width="1014" height="756" alt="Screenshot 2026-02-19 at 1 11 28 PM" src="https://github.com/user-attachments/assets/726774cd-0bc4-4e59-bdff-bdb7be6cd5d9" />
+
 Watch the product walkthrough: [https://youtu.be/odKifzz8NbI](https://youtu.be/odKifzz8NbI)
 
 ## Overview
