@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import {
@@ -6,11 +7,21 @@ import {
 } from 'geist/font/pixel';
 import "./globals.css";
 import '@pqina/flip/dist/flip.min.css';
-import { Agentation } from "agentation";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import MobileRestrictedView from "@/components/layout/MobileRestrictedView";
 import Providers from "./providers";
 import { Toaster } from "sonner";
+
+// Agentation is a dev-time agent overlay. Loaded only when NODE_ENV is
+// "development"; in a production build the conditional resolves to null
+// at compile time, so the dynamic import is dead-code-eliminated and
+// the `agentation` package is never bundled into the client chunk.
+const AgentationOverlay =
+  process.env.NODE_ENV === "development"
+    ? dynamic(() => import("@/components/dev/AgentationOverlay"), {
+        ssr: false,
+      })
+    : null;
 
 export const metadata: Metadata = {
   title: "Deriverse",
@@ -59,7 +70,7 @@ export default function RootLayout({
             },
           }}
         />
-        {process.env.NODE_ENV === "development" && <Agentation />}
+        {AgentationOverlay ? <AgentationOverlay /> : null}
       </body>
     </html>
   );
