@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import CardWithCornerShine from '../ui/CardWithCornerShine';
 import AddressInput from '../ui/AddressInput';
 import { HeliusService, TransactionLog } from '../../services/HeliusService';
@@ -28,6 +28,8 @@ interface TradeHistoryProps {
 export default function TradeHistory({ onSwitchToRealData }: TradeHistoryProps = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [heliusError, setHeliusError] = useState<string | null>(null);
+  const [deriverseError, setDeriverseError] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<TransactionLog[]>([]);
   const [deriverseTrades, setDeriverseTrades] = useState<any[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
@@ -48,10 +50,10 @@ export default function TradeHistory({ onSwitchToRealData }: TradeHistoryProps =
   const [hasCachedData, setHasCachedData] = useState(false);
   const [walletInfo, setWalletInfo] = useState<any>(null);
 
-  const heliusService = new HeliusService();
-  const deriverseService = new DeriverseTradeService();
-  const walletService = new SupabaseWalletService();
-  const tradeService = new SupabaseTradeService();
+  const heliusService = useMemo(() => new HeliusService(), []);
+  const deriverseService = useMemo(() => new DeriverseTradeService(), []);
+  const walletService = useMemo(() => new SupabaseWalletService(), []);
+  const tradeService = useMemo(() => new SupabaseTradeService(), []);
   const {
     connect,
     disconnect,
@@ -83,6 +85,8 @@ export default function TradeHistory({ onSwitchToRealData }: TradeHistoryProps =
   const handleAddressSubmit = async (address: string, forceRefresh = false) => {
     setLoading(true);
     setError(null);
+    setHeliusError(null);
+    setDeriverseError(null);
     setHasSearched(true);
 
     // Only clear tables if we are doing a fresh lookup or forced refresh
@@ -143,6 +147,10 @@ export default function TradeHistory({ onSwitchToRealData }: TradeHistoryProps =
           })
           .catch(err => {
             console.error('[Helius] Error:', err);
+            setHeliusError(err instanceof Error ? err.message : 'Failed to fetch transaction history');
+            toast.error('Failed to fetch transaction history', {
+              description: 'The RPC request failed. Try again in a moment.',
+            });
             setLoadingHelius(false);
           });
 
@@ -167,6 +175,10 @@ export default function TradeHistory({ onSwitchToRealData }: TradeHistoryProps =
           })
           .catch(err => {
             console.error('[Deriverse] Error:', err);
+            setDeriverseError(err instanceof Error ? err.message : 'Failed to fetch Deriverse trades');
+            toast.error('Failed to fetch Deriverse trades', {
+              description: 'The lookup failed — this is not an empty wallet. Try again in a moment.',
+            });
             setLoadingDeriverse(false);
           });
 
@@ -340,6 +352,13 @@ export default function TradeHistory({ onSwitchToRealData }: TradeHistoryProps =
               />
             )}
 
+            {/* General error (e.g. invalid address) */}
+            {error && (
+              <div role="alert" className="rounded-none border border-red-500/30 bg-red-500/10 p-4 text-red-300 text-sm">
+                {error}
+              </div>
+            )}
+
             {/* Tab Content */}
             {activeTab === 'deriverse' && (
               <div className="space-y-4">
@@ -349,6 +368,17 @@ export default function TradeHistory({ onSwitchToRealData }: TradeHistoryProps =
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                       <span className="ml-3 text-zinc-400">Parsing Deriverse trades...</span>
                     </div>
+                  </div>
+                ) : deriverseError && deriverseTrades.length === 0 ? (
+                  <div role="alert" className="rounded-none border border-red-500/30 bg-red-500/10 backdrop-blur-xl p-12 text-center">
+                    <p className="text-red-300 font-semibold mb-2">Couldn&apos;t fetch Deriverse trades</p>
+                    <p className="text-zinc-400 text-sm mb-6">{deriverseError}</p>
+                    <button
+                      onClick={() => currentWalletAddress && handleAddressSubmit(currentWalletAddress, true)}
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-none transition"
+                    >
+                      Retry
+                    </button>
                   </div>
                 ) : (
                   <>
@@ -371,6 +401,17 @@ export default function TradeHistory({ onSwitchToRealData }: TradeHistoryProps =
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                       <span className="ml-3 text-zinc-400">Fetching transactions...</span>
                     </div>
+                  </div>
+                ) : heliusError && transactions.length === 0 ? (
+                  <div role="alert" className="rounded-none border border-red-500/30 bg-red-500/10 backdrop-blur-xl p-12 text-center max-w-2xl mx-auto">
+                    <p className="text-red-300 font-semibold mb-2">Couldn&apos;t fetch transaction history</p>
+                    <p className="text-zinc-400 text-sm mb-6">{heliusError}</p>
+                    <button
+                      onClick={() => currentWalletAddress && handleAddressSubmit(currentWalletAddress, true)}
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-none transition"
+                    >
+                      Retry
+                    </button>
                   </div>
                 ) : transactions.length === 0 ? (
                   <div className="rounded-none border border-white/10 bg-black/80 backdrop-blur-xl p-12 text-center max-w-2xl mx-auto">
@@ -405,7 +446,7 @@ export default function TradeHistory({ onSwitchToRealData }: TradeHistoryProps =
                               key={tx.signature}
                               className="hover:bg-white/5 transition-all duration-200 group"
                               style={{
-                                animation: `fadeIn 0.3s ease-in-out ${index * 0.05}s both`
+                                animation: `fadeIn 0.3s ease-in-out ${Math.min(index * 0.05, 0.5)}s both`
                               }}
                             >
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-300">

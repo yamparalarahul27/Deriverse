@@ -1,8 +1,10 @@
 'use client';
 
+import { useEffect } from 'react';
+
 /**
  * AnalyticsConfirmModal Component
- * 
+ *
  * A modal dialog that appears after a user successfully saves trades.
  * It asks the user if they want to view analytics for the saved trades,
  * facilitating the transition from "saving" to "viewing".
@@ -21,10 +23,24 @@ export const AnalyticsConfirmModal = ({
     onCancel,
     tradeCount
 }: AnalyticsConfirmModalProps) => {
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onCancel();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onCancel]);
+
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="View analytics for saved trades"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        >
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/80 backdrop-blur-sm"
@@ -36,7 +52,7 @@ export const AnalyticsConfirmModal = ({
                 <div className="text-center space-y-4">
                     {/* Success Icon */}
                     <div className="mx-auto w-12 h-12 rounded-none bg-green-500/20 border border-green-500/30 flex items-center justify-center">
-                        <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                     </div>
@@ -45,7 +61,7 @@ export const AnalyticsConfirmModal = ({
                     <div>
                         <h3 className="text-xl font-bold text-white mb-2">Trades Saved Successfully!</h3>
                         <p className="text-white/60">
-                            You've saved {tradeCount} trades to your database.
+                            You&apos;ve saved {tradeCount} trades to your database.
                         </p>
                         <p className="text-white/80 mt-2 font-medium">
                             Would you like to view analytics for these trades on your Dashboard?
@@ -62,7 +78,8 @@ export const AnalyticsConfirmModal = ({
                         </button>
                         <button
                             onClick={onConfirm}
-                            className="px-4 py-2.5 rounded-none bg-purple-600/10 text-white hover:bg-purple-700 transition-colors font-mono text-sm shadow-lg shadow-purple-500/20 border border-purple-500/50"
+                            autoFocus
+                            className="px-4 py-2.5 rounded-none bg-purple-600 text-white hover:bg-purple-700 transition-colors font-mono text-sm shadow-lg shadow-purple-500/20 border border-purple-500/50"
                         >
                             Yes
                         </button>

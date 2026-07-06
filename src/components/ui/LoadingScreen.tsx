@@ -59,15 +59,22 @@ export default function LoadingScreen() {
     // This effect will be called when welcome screen is completed by user
     useEffect(() => {
         if (currentPhase === 'logo') {
-            // Phase 2: Logo Animation (4.8 seconds)
+            // Phase 2: brief logo beat, then into the app. Kept short — this
+            // gates every entry, and users can click to skip it entirely.
             const logoTimer = setTimeout(() => {
                 setCurrentPhase('complete');
                 setIsVisible(false);
-            }, 4800); // Logo animation time only
+            }, 1500);
 
             return () => clearTimeout(logoTimer);
         }
     }, [currentPhase]);
+
+    const skipLogoAnimation = () => {
+        if (currentPhase !== 'logo') return;
+        setCurrentPhase('complete');
+        setIsVisible(false);
+    };
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -87,10 +94,14 @@ export default function LoadingScreen() {
     useEffect(() => {
         if (isVisible) {
             document.body.style.overflow = 'hidden';
-            // Hide all children except the loading screen
+            // Hide all children except the loading screen and toast portal —
+            // toasts must stay visible even during the intro sequence.
             const bodyChildren = Array.from(document.body.children);
             bodyChildren.forEach((child) => {
-                if (!child.classList.contains('loading-screen')) {
+                if (
+                    !child.classList.contains('loading-screen') &&
+                    !child.querySelector('[data-sonner-toaster]')
+                ) {
                     (child as HTMLElement).style.visibility = 'hidden';
                 }
             });
@@ -168,8 +179,15 @@ export default function LoadingScreen() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.8, ease: "easeInOut" }}
+                            onClick={skipLogoAnimation}
+                            className="cursor-pointer"
+                            role="button"
+                            aria-label="Skip intro animation"
                         >
                             <DeriverseLogo />
+                            <p className="mt-6 text-center text-white/40 text-xs font-mono uppercase tracking-widest">
+                                Click to skip
+                            </p>
                         </motion.div>
                     )}
                 </motion.div>

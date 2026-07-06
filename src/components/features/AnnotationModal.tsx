@@ -61,6 +61,22 @@ export default function AnnotationModal({
         }
     };
 
+    // Close on Escape (dismiss the unsaved-changes warning first if shown)
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape') return;
+            if (showUnsavedWarning) {
+                setShowUnsavedWarning(false);
+            } else {
+                handleClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, showUnsavedWarning, note, lesson, tags]);
+
     const handleSave = () => {
         if (!trade) return;
         onSave({
@@ -118,7 +134,12 @@ export default function AnnotationModal({
                         />
 
                         {/* Modal */}
-                        <div className="fixed inset-0 z-[61] flex items-center justify-center p-4 overflow-y-auto">
+                        <div
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label={`Trade note for ${trade.symbol}`}
+                            className="fixed inset-0 z-[61] flex items-center justify-center p-4 overflow-y-auto"
+                        >
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -139,6 +160,7 @@ export default function AnnotationModal({
                                         <h2 className="text-xl font-bold text-white">Trade Note</h2>
                                         <button
                                             onClick={handleClose}
+                                            aria-label="Close trade note"
                                             className="rounded-none p-2 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
                                         >
                                             <X className="h-5 w-5" />

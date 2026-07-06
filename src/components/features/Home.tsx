@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import PnLCard from './PnLCard';
 import TableUI_Demo from './TableUI_Demo';
 import FeeDistribution from './FeeDistribution';
@@ -9,9 +10,8 @@ import LargestTradesCard from './LargestTradesCard';
 import DrawdownCard from './DrawdownCard';
 import OrderTypeRatioCard from './OrderTypeRatioCard';
 import AverageTradeDurationCard from './AverageTradeDurationCard';
-import TimeBasedPerformanceCard from './TimeBasedPerformanceCard';
 import MockDataBanner from '../ui/MockDataBanner';
-import { MOCK_TRADES, calculateFeeBreakdown } from '../../lib/mockData';
+import { getMockTrades, calculateFeeBreakdown } from '../../lib/mockData';
 import { SupabaseTradeService } from '../../services/SupabaseTradeService';
 import { SupabaseWalletService } from '../../services/SupabaseWalletService';
 import { Trade } from '../../lib/types';
@@ -30,6 +30,13 @@ import {
 import { addDays, startOfDay, endOfDay, format, subDays } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { loadAnnotations } from '../../lib/annotationStorage';
+
+// Heaviest card on the dashboard (recharts) — load it on demand so the chart
+// library stays out of the initial bundle.
+const TimeBasedPerformanceCard = dynamic(() => import('./TimeBasedPerformanceCard'), {
+  ssr: false,
+  loading: () => <div className="min-h-[600px] rounded-sm border border-white/10 bg-black/20 animate-pulse" />,
+});
 
 /**
  * Main dashboard component displaying comprehensive trading analytics
@@ -56,12 +63,14 @@ export default function Home({ network = 'mock', analyzingWallet, onNavigateToLo
   // Real data state
   const [realTrades, setRealTrades] = useState<Trade[]>([]);
   const [annotations, setAnnotations] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState(false);
+  // Start in loading state when a devnet fetch is imminent so the empty state
+  // doesn't flash for one frame before the fetch effect runs.
+  const [loading, setLoading] = useState(network === 'devnet' && !!analyzingWallet);
   const [error, setError] = useState<string | null>(null);
 
   // Determine which trades to display
   const displayTrades = useMemo(() => {
-    return network === 'devnet' ? realTrades : MOCK_TRADES;
+    return network === 'devnet' ? realTrades : getMockTrades();
   }, [network, realTrades]);
 
   // Fetch real trades when in devnet mode

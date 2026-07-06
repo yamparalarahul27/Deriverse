@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Copy, QrCode, X } from 'lucide-react';
 
 const TELEGRAM_URL = 'https://t.me/yamparalarahul1';
-const QR_IMAGE_SRC = '/assets/QR_image.png';
+const QR_IMAGE_SRC = '/assets/QR_image.webp';
 
 export default function AboutScreen() {
     const [copied, setCopied] = useState(false);

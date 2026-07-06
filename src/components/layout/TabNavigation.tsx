@@ -1,15 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import TradeHistory from '../features/TradeHistory';
+import { Suspense, useCallback, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Home from '../features/Home';
-import Journal from '../features/Journal';
-import ProfileSettings from '../features/ProfileSettings';
-import AboutScreen from '../features/AboutScreen';
-import HelpScreen from '../features/HelpScreen';
-import RoadmapScreen from '../features/RoadmapScreen';
 import { GlassmorphismNavbar, NavItem } from './GlassmorphismNavbar';
 import Footer from './Footer';
+
+const tabLoading = () => (
+    <div className="flex items-center justify-center py-24">
+        <div className="w-8 h-8 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+    </div>
+);
+
+// Only the default tab (Home) is in the initial bundle; every other screen
+// loads on demand so recharts, journal code, etc. stay out of the first paint.
+const TradeHistory = dynamic(() => import('../features/TradeHistory'), { loading: tabLoading });
+const Journal = dynamic(() => import('../features/Journal'), { loading: tabLoading });
+const ProfileSettings = dynamic(() => import('../features/ProfileSettings'), { loading: tabLoading });
+const AboutScreen = dynamic(() => import('../features/AboutScreen'), { loading: tabLoading });
+const HelpScreen = dynamic(() => import('../features/HelpScreen'), { loading: tabLoading });
+const RoadmapScreen = dynamic(() => import('../features/RoadmapScreen'), { loading: tabLoading });
 
 export type TabType = 'dashboard' | 'lookup' | 'journal' | 'appdocs' | 'help' | 'roadmap' | 'profile-settings';
 
@@ -18,30 +29,64 @@ const PERSISTABLE_TABS: TabType[] = ['dashboard', 'lookup', 'journal', 'appdocs'
 
 /**
  * TabNavigation Component
- * 
+ *
  * PURPOSE:
  * The primary navigation controller for the Deriverse application.
  * Manages the active tab state and coordinates between high-level views
  * like Dashboard, Journal, and Profile.
- * 
+ *
  * FEATURES:
- * - Persistent tab state across page refreshes via localStorage
+ * - Tab and analyzed wallet live in the URL (?tab=...&wallet=...), so the
+ *   browser Back button, refresh, and deep links all work
+ * - localStorage keeps the last tab as a fallback for bare visits
  * - Global event listeners for cross-component navigation
  * - Network state management ('devnet' | 'mainnet' | 'mock')
- * - Dynamic rendering of feature screens based on selection
  */
-export default function TabNavigation() {
-    const [activeTab, setActiveTab] = useState<TabType>(DEFAULT_TAB);
-    const [network, setNetwork] = useState<'devnet' | 'mainnet' | 'mock'>('mock');
-    const [analyzingWallet, setAnalyzingWallet] = useState<string | null>(null);
+function TabNavigationInner() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
 
+    const tabParam = searchParams.get('tab');
+    const activeTab: TabType = (PERSISTABLE_TABS as string[]).includes(tabParam ?? '')
+        ? (tabParam as TabType)
+        : DEFAULT_TAB;
+    const analyzingWallet = searchParams.get('wallet');
+    const [network, setNetwork] = useState<'devnet' | 'mainnet' | 'mock'>(analyzingWallet ? 'devnet' : 'mock');
+
+    const navigateWithParams = useCallback((mutate: (params: URLSearchParams) => void, replace = false) => {
+        const params = new URLSearchParams(searchParams.toString());
+        mutate(params);
+        const qs = params.toString();
+        const url = qs ? `${pathname}?${qs}` : pathname;
+        if (replace) {
+            router.replace(url, { scroll: false });
+        } else {
+            router.push(url, { scroll: false });
+        }
+    }, [router, pathname, searchParams]);
+
+    const setActiveTab = useCallback((tab: TabType) => {
+        navigateWithParams((params) => {
+            if (tab === DEFAULT_TAB) {
+                params.delete('tab');
+            } else {
+                params.set('tab', tab);
+            }
+        });
+    }, [navigateWithParams]);
+
+    // One-time migration: restore the last tab from localStorage when the URL
+    // doesn't specify one (bare visit), without adding a history entry.
     useEffect(() => {
         if (typeof window === 'undefined') return;
+        if (tabParam) return;
         const persistedRaw = window.localStorage.getItem('deriverse.activeTab');
         const migrated = persistedRaw === 'settings' ? 'profile-settings' : persistedRaw;
-        if (migrated && (PERSISTABLE_TABS as string[]).includes(migrated)) {
-            setActiveTab(migrated as TabType);
+        if (migrated && migrated !== DEFAULT_TAB && (PERSISTABLE_TABS as string[]).includes(migrated)) {
+            navigateWithParams((params) => params.set('tab', migrated), true);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -58,7 +103,7 @@ export default function TabNavigation() {
         return () => {
             window.removeEventListener('deriverse:set-active-tab', handleExternalTabChange as EventListener);
         };
-    }, []);
+    }, [setActiveTab]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -106,9 +151,11 @@ export default function TabNavigation() {
     ];
 
     const handleSwitchToRealData = (walletAddress: string) => {
-        setAnalyzingWallet(walletAddress);
         setNetwork('devnet');
-        setActiveTab('dashboard');
+        navigateWithParams((params) => {
+            params.set('wallet', walletAddress);
+            params.delete('tab');
+        });
     };
 
     const renderTabContent = () => {
@@ -166,5 +213,14 @@ export default function TabNavigation() {
                 <Footer />
             </div>
         </div>
+    );
+}
+
+// useSearchParams requires a Suspense boundary during static prerendering.
+export default function TabNavigation() {
+    return (
+        <Suspense fallback={null}>
+            <TabNavigationInner />
+        </Suspense>
     );
 }

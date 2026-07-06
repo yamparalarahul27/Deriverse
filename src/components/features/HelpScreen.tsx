@@ -6,7 +6,7 @@ import { Check, Copy, QrCode, X } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 
 const TELEGRAM_URL = 'https://t.me/yamparalarahul1';
-const QR_IMAGE_SRC = '/assets/QR_image.png';
+const QR_IMAGE_SRC = '/assets/QR_image.webp';
 
 const FAQ_ITEMS = [
     {

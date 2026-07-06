@@ -34,14 +34,10 @@ const AssetIcon = ({ trade }: { trade: Trade }) => {
         alt={trade.symbol}
         className="w-[26px] h-[26px] mr-2"
         onError={(e) => {
-          console.log('Icon failed to load:', iconPath);
           // Hide broken image and show fallback
           e.currentTarget.style.display = 'none';
           const fallback = e.currentTarget.nextSibling as HTMLElement;
           if (fallback) fallback.style.display = 'flex';
-        }}
-        onLoad={() => {
-          console.log('Icon loaded successfully:', iconPath);
         }}
       />
       <span className="w-[26px] h-[26px] mr-2 hidden items-center justify-center bg-black text-white text-xs font-mono rounded-none">

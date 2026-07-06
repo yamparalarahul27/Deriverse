@@ -41,28 +41,37 @@ export class HeliusService {
 
             const transactions: TransactionLog[] = [];
 
-            // Fetch details for each transaction
-            for (const sig of signatures) {
-                try {
-                    const tx = await connection.getTransaction(sig.signature, {
-                        maxSupportedTransactionVersion: 0,
-                        commitment: 'confirmed'
-                    });
+            // Fetch details in concurrent batches instead of one request at a
+            // time — 50 serial round-trips would take several seconds.
+            const batchSize = 10;
+            for (let i = 0; i < signatures.length; i += batchSize) {
+                const batch = signatures.slice(i, i + batchSize);
+                const results = await Promise.allSettled(
+                    batch.map((sig) =>
+                        connection.getTransaction(sig.signature, {
+                            maxSupportedTransactionVersion: 0,
+                            commitment: 'confirmed'
+                        })
+                    )
+                );
 
+                results.forEach((result, j) => {
+                    const sig = batch[j];
+                    if (result.status === 'rejected') {
+                        console.warn(`[Helius] Failed to fetch transaction ${sig.signature}:`, result.reason);
+                        return;
+                    }
+                    const tx = result.value;
                     if (tx && tx.meta) {
-                        const txLog: TransactionLog = {
+                        transactions.push({
                             signature: sig.signature,
                             time: tx.blockTime || Date.now() / 1000,
                             status: tx.meta.err ? 'Failed' : 'Confirmed',
                             type: this.detectTransactionType(tx),
                             fee: tx.meta.fee || 0,
-                        };
-
-                        transactions.push(txLog);
+                        });
                     }
-                } catch (error) {
-                    console.warn(`[Helius] Failed to fetch transaction ${sig.signature}:`, error);
-                }
+                });
             }
 
             console.log(`[Helius] Successfully fetched ${transactions.length} transaction details`);

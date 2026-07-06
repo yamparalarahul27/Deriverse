@@ -387,5 +387,13 @@ export function calculateLeverageVsWinRate(trades: Trade[]): Array<{ leverage: n
         .sort((a, b) => a.leverage - b.leverage);
 }
 
-// Generate and export mock trades
-export const MOCK_TRADES = generateMockTrades();
+// Mock trades are generated on first use (not at module load) so sessions on
+// real data never pay for generating 240 fake trades.
+let mockTradesCache: ReturnType<typeof generateMockTrades> | null = null;
+
+export function getMockTrades() {
+    if (!mockTradesCache) {
+        mockTradesCache = generateMockTrades();
+    }
+    return mockTradesCache;
+}

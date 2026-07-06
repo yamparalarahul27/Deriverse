@@ -4,7 +4,7 @@ import Image from 'next/image';
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 
-const QR_IMAGE_SRC = '/assets/QR_image.png';
+const QR_IMAGE_SRC = '/assets/QR_image.webp';
 
 export default function Footer() {
     const [isScanOpen, setIsScanOpen] = useState(false);

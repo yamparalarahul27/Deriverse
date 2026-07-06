@@ -197,7 +197,7 @@
 }
 
 body {
-  background-image: url('/assets/background.png');
+  background-image: url('/assets/background.webp');
   background-repeat: no-repeat;
   background-position: center center;
   background-attachment: fixed;

@@ -5,7 +5,6 @@ import {
   GeistPixelGrid,
 } from 'geist/font/pixel';
 import "./globals.css";
-import '@pqina/flip/dist/flip.min.css';
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import MobileRestrictedView from "@/components/layout/MobileRestrictedView";
 import Providers from "./providers";
@@ -23,7 +22,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body
         suppressHydrationWarning
         className={`

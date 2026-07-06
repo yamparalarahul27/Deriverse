@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import CardWithCornerShine from '../ui/CardWithCornerShine';
-import { MOCK_TRADES } from '../../lib/mockData';
+import { getMockTrades } from '../../lib/mockData';
 import { calculateWinRate, calculateAvgWin, calculateAvgLoss, filterTradesByDate, FilterType } from '../../lib/tradeFilters';
 import InfoTooltip from '../ui/InfoTooltip';
 import type { Trade } from '../../lib/types';
@@ -15,7 +15,7 @@ interface StatsRowProps {
 export default function StatsRow({ activeFilter = 'All', trades }: StatsRowProps) {
     // Calculate real stats from MOCK_TRADES
     const stats = useMemo(() => {
-        const filteredTrades = trades ?? filterTradesByDate(MOCK_TRADES, activeFilter);
+        const filteredTrades = trades ?? filterTradesByDate(getMockTrades(), activeFilter);
         const { winRate, wins, losses } = calculateWinRate(filteredTrades);
         const avgWin = calculateAvgWin(filteredTrades);
         const avgLoss = calculateAvgLoss(filteredTrades);

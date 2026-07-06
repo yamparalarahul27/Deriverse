@@ -33,7 +33,12 @@ export default function UnsavedChangesModal({
                     />
 
                     {/* Modal */}
-                    <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
+                    <div
+                        role="alertdialog"
+                        aria-modal="true"
+                        aria-label="Unsaved changes"
+                        className="fixed inset-0 z-[101] flex items-center justify-center p-4"
+                    >
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -76,23 +81,23 @@ export default function UnsavedChangesModal({
                                     </h3>
 
                                     {/* Message */}
-                                    <p className="mb-6 text-center text-sm text-white/60">
-                                        Save the annotation or it will be lost
+                                    <p className="mb-6 text-center text-sm text-white/70">
+                                        You have unsaved changes to this note. Do you want to save them before closing?
                                     </p>
 
-                                    {/* Buttons */}
+                                    {/* Buttons — Discard is destructive, so it's styled that way */}
                                     <div className="flex gap-3">
                                         <button
                                             onClick={onDiscard}
-                                            className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10"
+                                            className="flex-1 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/20"
                                         >
-                                            Discard
+                                            Discard Changes
                                         </button>
                                         <button
                                             onClick={onCancel}
                                             className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10"
                                         >
-                                            Cancel
+                                            Keep Editing
                                         </button>
                                         <button
                                             onClick={onSave}

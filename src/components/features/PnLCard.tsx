@@ -1,12 +1,22 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronDown, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { PnLChart } from './PnLChart';
+import dynamic from 'next/dynamic';
+import { ChevronDown } from 'lucide-react';
 import CardWithCornerShine from '../ui/CardWithCornerShine';
 import InfoTooltip from '../ui/InfoTooltip';
-import { calculateDailyPnL, MOCK_TRADES } from '../../lib/mockData';
+import { calculateDailyPnL, getMockTrades } from '../../lib/mockData';
 import { filterTradesByDate, FilterType } from '../../lib/tradeFilters';
 import { calculateDrawdownSeries, calculateDrawdownStats } from '../../lib/drawdownCalculations';
 import type { Trade } from '../../lib/types';
+
+// Chart lives behind an accordion — keep recharts out of the bundle until opened.
+const PnLChart = dynamic(() => import('./PnLChart').then((m) => m.PnLChart), {
+    ssr: false,
+    loading: () => (
+        <div className="h-full w-full flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+        </div>
+    ),
+});
 
 interface PnLCardProps {
     activeFilter?: FilterType;
@@ -53,7 +63,7 @@ export default function PnLCard({ activeFilter = 'All', trades }: PnLCardProps) 
 
     // Calculate real PnL data based on filter
     const pnlData = useMemo(() => {
-        const currentTrades = trades ?? filterTradesByDate(MOCK_TRADES, activeFilter);
+        const currentTrades = trades ?? filterTradesByDate(getMockTrades(), activeFilter);
 
         // Calculate total PnL from trades
         const currentPnL = currentTrades.reduce((sum, trade) => sum + trade.pnl, 0);
@@ -68,7 +78,7 @@ export default function PnLCard({ activeFilter = 'All', trades }: PnLCardProps) 
 
     // Generate chart data from real trades
     const chartData = useMemo(() => {
-        const currentTrades = trades ?? filterTradesByDate(MOCK_TRADES, activeFilter);
+        const currentTrades = trades ?? filterTradesByDate(getMockTrades(), activeFilter);
         const dailyPnL = calculateDailyPnL(currentTrades);
 
         return dailyPnL.map(day => ({
@@ -81,7 +91,7 @@ export default function PnLCard({ activeFilter = 'All', trades }: PnLCardProps) 
 
     // Calculate drawdown data
     const drawdownData = useMemo(() => {
-        const currentTrades = trades ?? filterTradesByDate(MOCK_TRADES, activeFilter);
+        const currentTrades = trades ?? filterTradesByDate(getMockTrades(), activeFilter);
         const dailyPnL = calculateDailyPnL(currentTrades);
         const { drawdowns } = calculateDrawdownSeries(dailyPnL);
         return drawdowns;
@@ -89,7 +99,7 @@ export default function PnLCard({ activeFilter = 'All', trades }: PnLCardProps) 
 
     // Calculate drawdown stats
     const drawdownStats = useMemo(() => {
-        const currentTrades = trades ?? filterTradesByDate(MOCK_TRADES, activeFilter);
+        const currentTrades = trades ?? filterTradesByDate(getMockTrades(), activeFilter);
         return calculateDrawdownStats(currentTrades);
     }, [activeFilter, trades]);
 
