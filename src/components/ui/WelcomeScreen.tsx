@@ -62,7 +62,7 @@ export const WelcomeScreen = ({ onComplete, isVisible }: WelcomeScreenProps) => 
                 <motion.div
                     className="welcome-screen fixed inset-0 z-50 flex items-center justify-center"
                     style={{
-                        backgroundImage: 'url(/assets/background_wallpaper_dot.png)',
+                        backgroundImage: 'url(/assets/background_wallpaper_dot.webp)',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         backgroundRepeat: 'no-repeat'

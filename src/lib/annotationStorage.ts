@@ -146,14 +146,12 @@ export async function migrateToSupabase(walletAddress: string, service: any): Pr
 
     console.log(`[Migration] Found ${tradeIds.length} local annotations for wallet: ${walletAddress}`);
 
-    let migratedCount = 0;
-    for (const tradeId of tradeIds) {
-        // Skip mock trades - they only live in localStorage
-        if (tradeId.startsWith('mock')) {
-            continue;
-        }
+    // Mock trades only live in localStorage — don't migrate them.
+    const migratable = tradeIds.filter((tradeId) => !tradeId.startsWith('mock'));
 
-        try {
+    // Save concurrently instead of one round-trip at a time.
+    const results = await Promise.allSettled(
+        migratable.map(async (tradeId) => {
             const local = localData[tradeId];
             await service.saveAnnotation({
                 tradeId: tradeId,
@@ -162,13 +160,19 @@ export async function migrateToSupabase(walletAddress: string, service: any): Pr
                 lessonsLearned: ''
             }, walletAddress); // Pass wallet address to satisfy schema
 
-            migratedCount++;
             // Remove from local after successful migration to prevent double migration
             deleteAnnotation(tradeId);
-        } catch (err) {
-            console.error(`[Migration] Failed to migrate trade ${tradeId}:`, err);
+        })
+    );
+
+    let migratedCount = 0;
+    results.forEach((result, i) => {
+        if (result.status === 'fulfilled') {
+            migratedCount++;
+        } else {
+            console.error(`[Migration] Failed to migrate trade ${migratable[i]}:`, result.reason);
         }
-    }
+    });
 
     return migratedCount;
 }

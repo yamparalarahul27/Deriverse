@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Download,
     ChevronLeft,
@@ -21,11 +21,10 @@ import {
     saveAnnotation as saveToLocalStorage
 } from '../../lib/annotationStorage';
 import SkeletonNote from '../ui/SkeletonNote';
-import { MOCK_TRADES } from '../../lib/mockData';
+import { getMockTrades } from '../../lib/mockData';
 import { SupabaseTradeService } from '../../services/SupabaseTradeService';
 import { SupabaseAnnotationService } from '../../services/SupabaseAnnotationService';
 import { toast } from 'sonner';
-import confetti from 'canvas-confetti';
 
 const ITEMS_PER_PAGE = 25;
 
@@ -54,34 +53,27 @@ export default function Journal({ network = 'mock', analyzingWallet, onNavigateT
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [availableTags, setAvailableTags] = useState<string[]>([]);
 
-    const annotationService = new SupabaseAnnotationService();
+    const annotationService = useMemo(() => new SupabaseAnnotationService(), []);
 
     useEffect(() => {
         async function loadInitialData() {
             setLoading(true);
             try {
-                // Determine source
-                let tradeList: Trade[] = [];
                 if (network === 'devnet' && analyzingWallet) {
+                    // Trades and annotations are independent — fetch them in parallel.
                     const tradeService = new SupabaseTradeService();
-                    tradeList = await tradeService.getTrades(analyzingWallet);
-                } else if (network === 'mock') {
-                    tradeList = MOCK_TRADES;
-                }
+                    const [tradeList, dbAnnotations] = await Promise.all([
+                        tradeService.getTrades(analyzingWallet),
+                        annotationService.getAnnotationsForWallet(analyzingWallet).catch((annErr) => {
+                            console.error('[Journal] Optional: Failed to load cloud annotations:', annErr);
+                            return null; // Trades are still visible without annotations.
+                        }),
+                    ]);
 
-                // PRIMARY LOAD: Set trades immediately so cards appear
-                setTrades(tradeList);
-                setLoading(false); // Stop main loading as soon as trades are here
-
-                // OPTIONAL LOAD: Load annotations and handle migrations in the background
-                if (network === 'devnet' && analyzingWallet) {
-                    // Safe fetch for cloud annotations
-                    try {
-                        const dbAnnotations = await annotationService.getAnnotationsForWallet(analyzingWallet);
+                    setTrades(tradeList);
+                    setLoading(false);
+                    if (dbAnnotations) {
                         setAnnotations(dbAnnotations);
-                    } catch (annErr) {
-                        console.error('[Journal] Optional: Failed to load cloud annotations:', annErr);
-                        // Don't toast error here, just log it. Trades are still visible.
                     }
 
                     // Safe background migration
@@ -96,6 +88,9 @@ export default function Journal({ network = 'mock', analyzingWallet, onNavigateT
                         console.error('[Journal] Optional: Migration error:', migErr);
                     }
                 } else if (network === 'mock') {
+                    setTrades(getMockTrades());
+                    setLoading(false);
+
                     // For mock, load from localStorage
                     try {
                         const localAnnotations = loadAnnotations();
@@ -115,6 +110,10 @@ export default function Journal({ network = 'mock', analyzingWallet, onNavigateT
                     } catch (localErr) {
                         console.error('[Journal] Optional: Failed to load local annotations:', localErr);
                     }
+                } else {
+                    // Devnet without a wallet (or mainnet): nothing to load.
+                    setTrades([]);
+                    setLoading(false);
                 }
 
             } catch (err) {
@@ -171,7 +170,10 @@ export default function Journal({ network = 'mock', analyzingWallet, onNavigateT
             if (isFirstAnnotation) {
                 // Celebration for the first journal entry!
                 // We use a small timeout to let the modal close and state update
-                setTimeout(() => {
+                setTimeout(async () => {
+                    // canvas-confetti is only needed for this one-time celebration,
+                    // so it stays out of the bundle until now.
+                    const { default: confetti } = await import('canvas-confetti');
                     const duration = 5 * 1000;
                     const animationEnd = Date.now() + duration;
                     const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
@@ -260,6 +262,8 @@ export default function Journal({ network = 'mock', analyzingWallet, onNavigateT
                     <div className="relative">
                         <button
                             onClick={() => setIsFilterOpen(!isFilterOpen)}
+                            aria-haspopup="true"
+                            aria-expanded={isFilterOpen}
                             className={`flex items-center gap-2 rounded-none border px-4 py-2 text-sm font-medium transition-all ${selectedTags.length > 0
                                 ? 'bg-purple-500/20 border-purple-500 text-purple-300'
                                 : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'
@@ -322,11 +326,24 @@ export default function Journal({ network = 'mock', analyzingWallet, onNavigateT
                 <JournalStreakCard trades={trades} annotations={annotations} />
             )}
 
-            {/* Loading State */}
+            {/* Loading State — skeleton cards matching the trade grid */}
             {loading && (
-                <div className="flex flex-col items-center justify-center min-h-[300px] text-white">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mb-4"></div>
-                    <p className="text-white/60">Loading journal entries...</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-label="Loading journal entries">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={`skeleton-${i}`} className="bg-white/5 border border-white/10 p-6 h-[200px]">
+                            <div className="animate-pulse flex flex-col h-full space-y-4">
+                                <div className="flex gap-3">
+                                    <div className="w-12 h-12 bg-white/5"></div>
+                                    <div className="space-y-2">
+                                        <div className="w-24 h-4 bg-white/5"></div>
+                                        <div className="w-16 h-3 bg-white/5"></div>
+                                    </div>
+                                </div>
+                                <div className="flex-1"></div>
+                                <SkeletonNote />
+                            </div>
+                        </div>
+                    ))}
                 </div>
             )}
 
@@ -378,21 +395,6 @@ export default function Journal({ network = 'mock', analyzingWallet, onNavigateT
                                 annotation={annotations[trade.id]}
                                 onAnnotate={() => handleAnnotate(trade)}
                             />
-                        ))}
-                        {loading && Array.from({ length: 6 }).map((_, i) => (
-                            <div key={`skeleton-${i}`} className="bg-white/5 border border-white/10 p-6 h-[200px]">
-                                <div className="animate-pulse flex flex-col h-full space-y-4">
-                                    <div className="flex gap-3">
-                                        <div className="w-12 h-12 bg-white/5"></div>
-                                        <div className="space-y-2">
-                                            <div className="w-24 h-4 bg-white/5"></div>
-                                            <div className="w-16 h-3 bg-white/5"></div>
-                                        </div>
-                                    </div>
-                                    <div className="flex-1"></div>
-                                    <SkeletonNote />
-                                </div>
-                            </div>
                         ))}
                     </div>
 

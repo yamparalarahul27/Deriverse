@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { TableUI, Column } from '../ui/TableUI';
-import { MOCK_TRADES } from '../../lib/mockData';
+import { getMockTrades } from '../../lib/mockData';
 import { filterTradesByDate, FilterType } from '../../lib/tradeFilters';
 import { getPairImage } from '../../lib/tokenImages';
 import { format } from 'date-fns';
@@ -15,7 +15,7 @@ interface TableUIDemoProps {
 export default function TableUI_Demo({ activeFilter = 'All', trades }: TableUIDemoProps) {
     // Map MOCK_TRADES to table format with custom columns
     const tableData = useMemo(() => {
-        const filteredTrades = trades ?? filterTradesByDate(MOCK_TRADES, activeFilter);
+        const filteredTrades = trades ?? filterTradesByDate(getMockTrades(), activeFilter);
         // Show up to 50 most recent trades from the filtered set
         return filteredTrades.slice(0, 50).map(trade => ({
             id: trade.id,

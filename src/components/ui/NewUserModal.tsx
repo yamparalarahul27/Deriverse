@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import WelcomeCard from './WelcomeCard';
 import WelcomeButton from './WelcomeButton';
@@ -29,13 +29,25 @@ export default function NewUserModal({ isVisible, onChoice, walletAddress }: New
         onChoice('back');
     };
 
+    useEffect(() => {
+        if (!isVisible) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onChoice('back');
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isVisible, onChoice]);
+
     return (
         <AnimatePresence>
             {isVisible && (
                 <motion.div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="New user signup"
                     className="welcome-screen fixed inset-0 z-50 flex items-center justify-center"
                     style={{
-                        backgroundImage: 'url(/assets/background_wallpaper_dot.png)',
+                        backgroundImage: 'url(/assets/background_wallpaper_dot.webp)',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         backgroundRepeat: 'no-repeat'

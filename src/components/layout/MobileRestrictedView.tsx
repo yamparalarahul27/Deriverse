@@ -7,7 +7,7 @@ export default function MobileRestrictedView() {
         <div
             className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-6 text-center bg-[#0D0D21]"
             style={{
-                backgroundImage: "url('/assets/background_wallpaper_dot.png')",
+                backgroundImage: "url('/assets/background_wallpaper_dot.webp')",
                 backgroundSize: "cover",
                 backgroundPosition: "center",
             }}

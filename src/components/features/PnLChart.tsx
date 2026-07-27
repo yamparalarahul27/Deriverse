@@ -62,8 +62,12 @@ const CustomTooltip = ({ active, payload, label, showDrawdown }: any) => {
 export const PnLChart: React.FC<PnLChartProps> = ({ data, height = 400, showDrawdown = false, drawdownData = [] }) => {
     // 1. Calculate gradient offset based on data range
     const gradientOffset = useMemo(() => {
-        const dataMax = Math.max(...data.map((i) => Math.max(i.value, 0)));
-        const dataMin = Math.min(...data.map((i) => Math.min(i.value, 0)));
+        let dataMax = 0;
+        let dataMin = 0;
+        for (const point of data) {
+            if (point.value > dataMax) dataMax = point.value;
+            if (point.value < dataMin) dataMin = point.value;
+        }
 
         if (dataMax <= 0) {
             return 0;
@@ -79,10 +83,12 @@ export const PnLChart: React.FC<PnLChartProps> = ({ data, height = 400, showDraw
     const chartData = useMemo(() => {
         if (!showDrawdown || !drawdownData.length) return data;
 
+        let totalPnL = 0;
+        let maxDrawdown = 0;
         return data.map((item, index) => {
             const drawdownPoint = drawdownData[index];
-            const totalPnL = data.slice(0, index + 1).reduce((sum: number, d: any) => sum + d.value, 0);
-            const maxDrawdown = drawdownData.slice(0, index + 1).reduce((max: number, dd: DrawdownPoint) => Math.max(max, dd.value), 0);
+            totalPnL += item.value;
+            maxDrawdown = Math.max(maxDrawdown, drawdownPoint?.value ?? 0);
 
             return {
                 ...item,
