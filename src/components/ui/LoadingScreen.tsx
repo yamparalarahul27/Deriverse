@@ -80,6 +80,8 @@ export default function LoadingScreen() {
         if (typeof window === 'undefined') return;
 
         const handleShowWelcome = () => {
+            // Hide app content before React paints the welcome screen.
+            document.body.classList.add('app-loading');
             setCurrentPhase('welcome');
             setIsVisible(true);
         };
@@ -94,25 +96,12 @@ export default function LoadingScreen() {
     useEffect(() => {
         if (isVisible) {
             document.body.style.overflow = 'hidden';
-            // Hide all children except the loading screen and toast portal —
-            // toasts must stay visible even during the intro sequence.
-            const bodyChildren = Array.from(document.body.children);
-            bodyChildren.forEach((child) => {
-                if (
-                    !child.classList.contains('loading-screen') &&
-                    !child.querySelector('[data-sonner-toaster]')
-                ) {
-                    (child as HTMLElement).style.visibility = 'hidden';
-                }
-            });
+            document.body.classList.add('app-loading');
         } else {
             // Add a small buffer before showing content to ensure smooth transition
             const bufferTimer = setTimeout(() => {
                 document.body.style.overflow = '';
-                const bodyChildren = Array.from(document.body.children);
-                bodyChildren.forEach((child) => {
-                    (child as HTMLElement).style.visibility = '';
-                });
+                document.body.classList.remove('app-loading');
             }, 200);
 
             return () => clearTimeout(bufferTimer);

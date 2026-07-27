@@ -29,11 +29,11 @@ export default function RootLayout({
           ${GeistSans.variable} 
           ${GeistMono.variable} 
           ${GeistPixelGrid.variable} 
-          antialiased
+          antialiased app-loading
         `}
       >
         <Providers>
-          <div className="hidden md:block h-full">
+          <div data-app-content className="hidden md:block h-full">
             {children}
           </div>
           <LoadingScreen />

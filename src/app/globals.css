@@ -205,6 +205,15 @@ body {
   font-family: var(--font-geist-mono), monospace;
 }
 
+/*
+ * The entry screen is rendered alongside the app. Keep the app hidden from
+ * the server's first paint so it cannot flash through before React mounts.
+ * LoadingScreen removes this class when the entry sequence finishes.
+ */
+body.app-loading [data-app-content] {
+  visibility: hidden;
+}
+
 /* ============================================
    Geist Typography Scale Utilities
    ============================================ */
